@@ -11,6 +11,7 @@ artifacts/*.json
 !artifacts/.gitkeep
 .idea/
 .DS_Store
+HANDOFF.md
 *.tfstate
 *.tfstate.backup
 .terraform/
