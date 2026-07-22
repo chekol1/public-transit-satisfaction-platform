@@ -14,8 +14,9 @@ with a location, store it) but rebuilt as a small, testable, deployable
 service: a clean `sklearn` pipeline behind a versioned artifact, a FastAPI
 serving layer, a repository-pattern DB layer, containerized, with
 Terraform + Kubernetes manifests to run it on EKS, a CI pipeline, and
-Prometheus metrics. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for
-the full picture and the reasoning behind it.
+Prometheus metrics with a provisioned Grafana dashboard. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture and the
+reasoning behind it.
 
 ## Quickstart
 
@@ -33,6 +34,14 @@ Or with Docker:
 ```bash
 make train          # bake a model artifact in before building the image
 docker compose up --build
+```
+
+For the full observability stack (Prometheus + Grafana) alongside the API:
+
+```bash
+docker compose --profile monitoring up --build
+# Prometheus: http://localhost:9090
+# Grafana:    http://localhost:3000 (anonymous viewer access, or admin/admin)
 ```
 
 Try it:
@@ -54,7 +63,8 @@ curl -X POST localhost:8000/predict \
 | Geo-tagging | `src/transit_satisfaction/geo/` | Municipality lookup (swap in the original `muni.json` for full coverage) |
 | Storage | `src/transit_satisfaction/db/repository.py` | MongoDB repository, testable via `mongomock`, non-blocking on the API |
 | Infra | `infra/terraform/`, `infra/k8s/` | ECR + EKS (Fargate profile) + Deployment/Service/HPA |
-| CI | `.github/workflows/ci.yml` | lint (ruff/black) -> test (pytest) -> build & push to ECR |
+| Monitoring | `monitoring/` | Prometheus scrape config + provisioned Grafana dashboard (request rate, latency p50/p95, target up) |
+| CI | `.github/workflows/ci.yml` | lint (ruff/black) -> test (pytest) -> terraform fmt/validate -> build & push to ECR |
 
 ## Security note
 

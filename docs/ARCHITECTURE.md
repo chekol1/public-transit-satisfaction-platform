@@ -27,12 +27,17 @@ flowchart LR
         J[(MongoDB\nsatisfaction_scores)]
     end
 
+    subgraph Observability["monitoring/ (opt-in profile)"]
+        K[Prometheus] --> L[Grafana dashboard]
+    end
+
     A --> B
     B --> C
     B --> D
     D --> F
     B -->|persist=true| J
     B --> E
+    E -.->|scrape| K
 ```
 
 ## Why it's shaped this way
