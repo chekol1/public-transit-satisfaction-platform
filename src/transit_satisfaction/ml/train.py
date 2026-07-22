@@ -33,6 +33,7 @@ from pathlib import Path
 
 import joblib
 import pandas as pd
+import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, roc_auc_score
@@ -54,6 +55,7 @@ class TrainingMetrics:
     roc_auc: float
     cv_f1_mean: float
     cv_f1_std: float
+    sklearn_version: str
 
 
 def build_pipeline() -> Pipeline:
@@ -91,6 +93,7 @@ def train(data_path: Path = DEFAULT_DATA_PATH, artifact_path: str | None = None)
         roc_auc=float(roc_auc_score(y_test, y_proba)),
         cv_f1_mean=float(cv_scores.mean()),
         cv_f1_std=float(cv_scores.std()),
+        sklearn_version=sklearn.__version__,
     )
 
     # Refit on the full dataset before shipping -- the train/test split above

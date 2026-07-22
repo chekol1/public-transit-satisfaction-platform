@@ -42,6 +42,7 @@ class SatisfactionRecord:
     satisfaction_score: float
     label: str
     municipality: str | None = None
+    geo_source: str | None = None
     source_id: str | None = None
     scored_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -51,6 +52,7 @@ class SatisfactionRecord:
             "satisfaction_score": self.satisfaction_score,
             "label": self.label,
             "municipality": self.municipality,
+            "geo_source": self.geo_source,
             "source_id": self.source_id,
             "scored_at": self.scored_at,
         }

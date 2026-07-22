@@ -16,7 +16,9 @@ serving layer, a repository-pattern DB layer, containerized, with
 Terraform + Kubernetes manifests to run it on EKS, a CI pipeline, and
 Prometheus metrics with a provisioned Grafana dashboard. See
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture and the
-reasoning behind it.
+reasoning behind it, and [`docs/MODEL_DECISIONS.md`](docs/MODEL_DECISIONS.md)
+for what the original project tried modeling-wise and why this rebuild
+chose differently.
 
 ## Quickstart
 
@@ -49,8 +51,8 @@ Try it:
 ```bash
 curl -X POST localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"text": "Bus was on time and clean today in Tel Aviv"}'
-# {"label":"satisfied","satisfaction_score":0.54,"municipality":"Tel Aviv","record_id":null}
+  -d '{"text": "Bus was on time and clean today near Embarcadero station"}'
+# {"label":"satisfied","satisfaction_score":0.54,"is_transit_related":true,"municipality":"Embarcadero","geo_source":"bart","record_id":null}
 ```
 
 ## What's here
@@ -60,7 +62,8 @@ curl -X POST localhost:8000/predict \
 | ML training | `src/transit_satisfaction/ml/train.py` | TF-IDF + Logistic Regression, versioned artifact + metrics |
 | Serving | `src/transit_satisfaction/ml/predict.py` | Loads the artifact, nothing model-specific here |
 | API | `src/transit_satisfaction/api/` | FastAPI: `/predict`, `/health`, `/metrics` |
-| Geo-tagging | `src/transit_satisfaction/geo/` | Municipality lookup (swap in the original `muni.json` for full coverage) |
+| Geo-tagging | `src/transit_satisfaction/geo/` | Tiered BART station -> MUNI stop -> city mention -> user-location cascade, using the original project's real `muni.json` |
+| Relevance filter | `src/transit_satisfaction/nlp/relevance.py` | Is the text even about public transit? (the original's missing `analays_tweets.py` step) |
 | Storage | `src/transit_satisfaction/db/repository.py` | MongoDB repository, testable via `mongomock`, non-blocking on the API |
 | Infra | `infra/terraform/`, `infra/k8s/` | ECR + EKS (Fargate profile) + Deployment/Service/HPA |
 | Monitoring | `monitoring/` | Prometheus scrape config + provisioned Grafana dashboard (request rate, latency p50/p95, target up) |

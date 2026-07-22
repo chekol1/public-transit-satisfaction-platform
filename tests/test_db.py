@@ -23,17 +23,17 @@ def test_add_many_and_find_by_municipality():
         repo.add_many(
             [
                 SatisfactionRecord(
-                    text="a", satisfaction_score=0.8, label="satisfied", municipality="Tel Aviv"
+                    text="a", satisfaction_score=0.8, label="satisfied", municipality="Embarcadero"
                 ),
                 SatisfactionRecord(
-                    text="b", satisfaction_score=0.2, label="unsatisfied", municipality="Haifa"
+                    text="b", satisfaction_score=0.2, label="unsatisfied", municipality="Powell St"
                 ),
             ]
         )
 
-        tel_aviv_results = list(repo.find_by_municipality("Tel Aviv"))
-        assert len(tel_aviv_results) == 1
-        assert tel_aviv_results[0]["text"] == "a"
+        embarcadero_results = list(repo.find_by_municipality("Embarcadero"))
+        assert len(embarcadero_results) == 1
+        assert embarcadero_results[0]["text"] == "a"
 
 
 def test_find_all_respects_limit():

@@ -8,7 +8,8 @@ flowchart LR
 
     subgraph API["FastAPI service (this repo)"]
         B[predict endpoint]
-        C[GeoTagger]
+        R[is_transit_related]
+        C["GeoTagger\n(BART -> MUNI -> text -> user_location)"]
         D[predict_satisfaction]
         E[/metrics - Prometheus/]
     end
@@ -32,6 +33,7 @@ flowchart LR
     end
 
     A --> B
+    B --> R
     B --> C
     B --> D
     D --> F
@@ -52,4 +54,4 @@ flowchart LR
 
 - **Real-time ingestion.** The original project streamed tweets directly via threads writing to local files. A production version of that would be Kafka/Kinesis, not threads -- but that's a separate ingestion service, not part of this API's job.
 - **A fancier model.** TF-IDF + Logistic Regression is intentionally boring: it trains in under a second on a laptop with no GPU and no external model download, so the whole pipeline is reproducible by anyone who clones the repo. Swapping in fastText embeddings or a transformer is a change entirely inside `train.py` -- the API and tests wouldn't need to change.
-- **A real geo lookup.** `GeoTagger` is a substring match against a small list. The original project's `muni.json` had full municipality coverage; that's a drop-in data file, not an architecture change.
+- **Anything beyond text-based geo tiers.** `GeoTagger` uses the original project's real `muni.json` (BART stations, MUNI stops, generic city mention, user-location fallback -- see `docs/MODEL_DECISIONS.md`), but drops the tiers that needed live tweet fields the original had and this API doesn't (GPS coordinates, the tweet `place` bounding box) or an Excel-file building list this rebuild doesn't vendor.

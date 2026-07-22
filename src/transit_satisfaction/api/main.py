@@ -20,6 +20,7 @@ from transit_satisfaction.db.repository import SatisfactionRecord, SatisfactionR
 from transit_satisfaction.geo.geo_tagger import GeoTagger
 from transit_satisfaction.logging_config import configure_logging
 from transit_satisfaction.ml.predict import ModelNotLoadedError, load_model, predict_satisfaction
+from transit_satisfaction.nlp.relevance import is_transit_related
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -70,7 +71,21 @@ def predict(payload: PredictRequest) -> PredictResponse:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     PREDICTIONS_TOTAL.labels(label=result.label).inc()
-    municipality = geo_tagger.tag(payload.text)
+
+    geo_match = geo_tagger.tag(payload.text, user_location=payload.user_location)
+    municipality = geo_match.name if geo_match else None
+    geo_source = geo_match.source if geo_match else None
+
+    # The model scores whatever text it's given -- it has no notion of
+    # whether the text is even about public transit. `is_transit_related`
+    # is exposed alongside the score rather than used to block scoring, so
+    # a consumer can decide whether to trust/display an off-topic score
+    # instead of us silently discarding it. A resolved BART/MUNI stop name
+    # is itself strong evidence of relevance, even when the text names no
+    # generic transit keyword (e.g. "Skipped my stop at 19th Ave & Holloway").
+    relevant = is_transit_related(payload.text) or (geo_source in {"bart", "muni"})
+    if not relevant:
+        logger.debug("Scored text does not appear to be transit-related: %r", payload.text)
 
     record_id = None
     if payload.persist:
@@ -82,6 +97,7 @@ def predict(payload: PredictRequest) -> PredictResponse:
                         satisfaction_score=result.satisfaction_score,
                         label=result.label,
                         municipality=municipality,
+                        geo_source=geo_source,
                         source_id=payload.source_id,
                     )
                 )
@@ -93,6 +109,8 @@ def predict(payload: PredictRequest) -> PredictResponse:
     return PredictResponse(
         label=result.label,
         satisfaction_score=result.satisfaction_score,
+        is_transit_related=relevant,
         municipality=municipality,
+        geo_source=geo_source,
         record_id=record_id,
     )

@@ -32,12 +32,42 @@ def test_predict_happy_path(client):
     body = resp.json()
     assert body["label"] in {"satisfied", "unsatisfied"}
     assert 0.0 <= body["satisfaction_score"] <= 1.0
+    assert body["is_transit_related"] is True
 
 
-def test_predict_tags_known_municipality(client):
-    resp = client.post("/predict", json={"text": "Bus delayed again in Tel Aviv"})
+def test_predict_tags_known_bart_station(client):
+    resp = client.post("/predict", json={"text": "Bus delayed again near Embarcadero station"})
     assert resp.status_code == 200
-    assert resp.json()["municipality"] == "Tel Aviv"
+    body = resp.json()
+    assert body["municipality"] == "Embarcadero"
+    assert body["geo_source"] == "bart"
+
+
+def test_predict_falls_back_to_user_location(client):
+    resp = client.post(
+        "/predict",
+        json={"text": "Delayed again this morning", "user_location": "San Francisco, CA"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["municipality"] == "San Francisco"
+    assert body["geo_source"] == "user_location"
+
+
+def test_predict_flags_unrelated_text(client):
+    resp = client.post("/predict", json={"text": "I made pasta for dinner tonight"})
+    assert resp.status_code == 200
+    assert resp.json()["is_transit_related"] is False
+
+
+def test_predict_treats_resolved_stop_name_as_relevant(client):
+    # No generic transit keyword ("bus"/"train"/etc.) in this text at all --
+    # but it names a real MUNI stop, which is itself evidence of relevance.
+    resp = client.post("/predict", json={"text": "Skipped my stop at 19th Avenue & Holloway St"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["geo_source"] == "muni"
+    assert body["is_transit_related"] is True
 
 
 def test_predict_empty_text_rejected_by_schema(client):
