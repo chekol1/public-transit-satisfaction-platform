@@ -46,7 +46,12 @@ def predict_satisfaction(text: str, artifact_path: str | None = None) -> Predict
     if not text or not text.strip():
         raise ValueError("text must be non-empty")
 
-    model = load_model(artifact_path)
+    # Call with no args when possible: `lru_cache` keys on the literal call
+    # signature, not resolved defaults, so `load_model(None)` and `load_model()`
+    # are different cache entries. With maxsize=1, mixing the two forms across
+    # call sites (health/startup vs. here) evicted and reloaded the artifact
+    # from disk on every switch between them.
+    model = load_model(artifact_path) if artifact_path else load_model()
     proba = model.predict_proba([text])[0]
     # class 1 = "satisfied" in the training data
     score = float(proba[1])
