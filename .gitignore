@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+artifacts/*.pkl
+artifacts/*.json
+!artifacts/.gitkeep
+.idea/
+.DS_Store
+*.tfstate
+*.tfstate.backup
+.terraform/

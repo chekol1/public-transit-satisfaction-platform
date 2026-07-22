@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - run: pip install -r requirements-dev.txt
+
+      - run: ruff check src tests
+      - run: black --check src tests
+
+      - name: Train demo model (artifact needed for API import-time checks)
+        run: PYTHONPATH=src python -m transit_satisfaction.ml.train
+
+      - run: pytest
+
+  build-and-push:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Train model artifact for image build
+        run: |
+          pip install -r requirements.txt
+          PYTHONPATH=src python -m transit_satisfaction.ml.train
+
+      # Uses OIDC federation instead of long-lived AWS keys in repo secrets.
+      - name: Configure AWS credentials
+        if: env.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Login to ECR
+        if: env.AWS_ROLE_ARN != ''
+        run: aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Build and push image
+        if: env.AWS_ROLE_ARN != ''
+        run: |
+          docker build -t ${{ secrets.ECR_REGISTRY }}/transit-satisfaction-api:${{ github.sha }} .
+          docker push ${{ secrets.ECR_REGISTRY }}/transit-satisfaction-api:${{ github.sha }}
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
