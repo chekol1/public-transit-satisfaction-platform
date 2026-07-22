@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master, dev]
   pull_request:
 
 jobs:
@@ -29,7 +29,7 @@ jobs:
   build-and-push:
     needs: lint-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master'
     permissions:
       id-token: write
       contents: read
