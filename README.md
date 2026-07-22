@@ -20,6 +20,12 @@ reasoning behind it, and [`docs/MODEL_DECISIONS.md`](docs/MODEL_DECISIONS.md)
 for what the original project tried modeling-wise and why this rebuild
 chose differently.
 
+This service is also the engine behind a larger feature concept --
+[`docs/product/MOOVIT_FEATURE_PROPOSAL.md`](docs/product/MOOVIT_FEATURE_PROPOSAL.md)
+sketches what "transit line satisfaction" could look like as a real
+feature inside a transit app: product spec, a microservices architecture,
+edge cases, and a phased rollout plan.
+
 ## Quickstart
 
 ```bash

@@ -41,6 +41,20 @@ None of the three approaches got the same treatment: no shared evaluation
 harness, no versioned artifact, no test suite, and (per `HANDOFF.md`) a
 real credential leak in the DB layer alongside all of it.
 
+**Correction, found after reading `main.py`/`Streamer.py` in full:** the
+three approaches were not tried "side by side" as equally-weighted
+experiments. `main.py` runs three threads forever -- ingestion
+(`Streamer.py`), hourly consolidation + geo-tagging (`save_csv_file.py`),
+and a classification thread that calls `CLASSIFICATION_SENTIMENT.main()`
+directly. **The GloVe+LSTM model was the one actually wired into the live
+pipeline.** `applying_ML_algorithms.py` (word2vec+RandomForest) and
+`sentiment_analysis.py` (TextBlob) were separate offline experiments,
+invoked only from `post_existing_file.py`/`straight_analysis.py` to
+reprocess already-saved files -- never part of the live streaming path.
+That changes the honest framing below: this rebuild's TF-IDF+LogisticRegression
+is a deliberate simplification *from what was actually shipped*, not just
+a pick among three untested equals.
+
 ## What this rebuild chose, and why
 
 `train.py` uses **TF-IDF (1-2 grams) + `LogisticRegression`** inside a single
