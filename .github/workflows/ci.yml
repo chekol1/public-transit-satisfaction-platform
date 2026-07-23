@@ -42,6 +42,16 @@ jobs:
       - run: terraform init -backend=false
       - run: terraform validate
 
+  k8s-manifests-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # kubectl kustomize needs no cluster -- it's a pure local render,
+      # so this catches manifest/Kustomize errors (e.g. an overlay
+      # referencing a base incorrectly) with no AWS credentials involved.
+      - run: kubectl kustomize infra/k8s/base
+      - run: kubectl kustomize infra/k8s/local
+
   build-and-push:
     needs: lint-test
     runs-on: ubuntu-latest

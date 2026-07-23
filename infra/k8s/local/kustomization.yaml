@@ -1,0 +1,27 @@
+# Local-testing overlay: reuses the real manifests unchanged, points the
+# image at a locally-built tag instead of ECR, and adds the pieces that
+# only exist for local testing (an in-cluster Mongo, a non-secret secret).
+# Usage: see ../../README.md (local Kubernetes testing section).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+  - mongo.yaml
+
+images:
+  - name: <ECR_REPOSITORY_URL>
+    newName: transit-satisfaction-api
+    newTag: local
+
+secretGenerator:
+  - name: transit-satisfaction-secrets
+    literals:
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB_NAME=transit_satisfaction
+
+# Two replicas is a production concern; one is enough to prove the
+# manifests work on a single-node local cluster.
+replicas:
+  - name: transit-satisfaction-api
+    count: 1
